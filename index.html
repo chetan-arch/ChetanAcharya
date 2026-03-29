@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CHETAN.EXE — Portfolio OS v2.6</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green: #00ff88;
+      --green-dim: #00cc6699;
+      --green-glow: 0 0 10px #00ff88aa, 0 0 30px #00ff8844;
+      --cyan: #00e5ff;
+      --yellow: #ffd600;
+      --red: #ff4444;
+      --purple: #b347ff;
+      --bg: #020d06;
+      --bg2: #040f08;
+      --panel: #071a0e;
+      --border: #0a3320;
+      --text: #a0ffcc;
+      --text-dim: #3a7a55;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--green);
+      font-family: 'Share Tech Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    #cursor {
+      width: 16px; height: 16px;
+      border: 2px solid var(--green);
+      border-radius: 50%;
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      transition: transform 0.1s, border-color 0.2s;
+      box-shadow: var(--green-glow);
+    }
+    #cursor-dot {
+      width: 4px; height: 4px;
+      background: var(--green);
+      border-radius: 50%;
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px);
+      pointer-events: none;
+      z-index: 100;
+    }
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.7) 100%);
+      pointer-events: none;
+      z-index: 101;
+    }
+
+    /* BOOT SCREEN */
+    #boot-screen {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      z-index: 500;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 2rem;
+    }
+    #boot-screen.hidden { display: none; }
+
+    .boot-logo {
+      font-family: 'VT323', monospace;
+      font-size: clamp(3rem, 8vw, 6rem);
+      color: var(--green);
+      text-shadow: var(--green-glow);
+      letter-spacing: 0.2em;
+      animation: flicker 3s infinite;
+    }
+    .boot-sub {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      letter-spacing: 0.3em;
+      margin-top: 0.5rem;
+    }
+    .boot-log {
+      margin-top: 2rem;
+      width: min(600px, 90vw);
+      font-size: 0.9rem;
+      color: var(--text-dim);
+      line-height: 1.9;
+    }
+    .boot-log .line { opacity: 0; animation: appear 0.01s forwards; }
+    .boot-bar {
+      margin-top: 1.5rem;
+      width: min(400px, 80vw);
+      height: 5px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .boot-fill {
+      height: 100%;
+      background: var(--green);
+      box-shadow: var(--green-glow);
+      width: 0%;
+      transition: width 0.05s linear;
+    }
+    #enter-btn {
+      margin-top: 2rem;
+      display: none;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.1rem;
+      color: var(--bg);
+      background: var(--green);
+      border: none;
+      padding: 0.85rem 2.8rem;
+      letter-spacing: 0.2em;
+      cursor: pointer;
+      animation: pulse-btn 1.5s infinite;
+      box-shadow: var(--green-glow);
+    }
+    @keyframes pulse-btn {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+    }
+
+    /* MAIN OS */
+    #os { display: none; min-height: 100vh; flex-direction: column; }
+    #os.active { display: flex; }
+
+    /* Topbar */
+    #topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.75rem 1.8rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+      position: sticky; top: 0; z-index: 200;
+    }
+    .topbar-logo {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900; font-size: 1.1rem;
+      color: var(--green);
+      text-shadow: var(--green-glow);
+      letter-spacing: 0.15em;
+    }
+    #clock { font-size: 0.92rem; color: var(--text-dim); letter-spacing: 0.1em; }
+    .status-pills { display: flex; gap: 0.75rem; }
+    .pill {
+      font-size: 0.78rem; padding: 0.25rem 0.75rem;
+      border: 1px solid var(--green-dim);
+      border-radius: 2px; color: var(--green);
+      letter-spacing: 0.1em;
+    }
+
+    /* Layout */
+    #main-layout {
+      display: grid;
+      grid-template-columns: 230px 1fr;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* Sidebar */
+    #sidebar {
+      border-right: 1px solid var(--border);
+      background: var(--bg2);
+      padding: 1.5rem 0;
+      display: flex; flex-direction: column;
+      gap: 0.25rem;
+    }
+    .sidebar-label {
+      font-size: 0.72rem; color: var(--text-dim);
+      letter-spacing: 0.3em; padding: 0 1.2rem;
+      margin-bottom: 0.5rem; margin-top: 0.5rem;
+    }
+    .nav-item {
+      padding: 0.75rem 1.4rem;
+      cursor: pointer;
+      font-size: 1rem;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      display: flex; align-items: center; gap: 0.7rem;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .nav-item:hover { color: var(--green); background: rgba(0,255,136,0.04); }
+    .nav-item.active {
+      color: var(--green); border-left-color: var(--green);
+      background: rgba(0,255,136,0.07);
+      text-shadow: 0 0 8px var(--green);
+    }
+    .nav-icon { font-size: 1.1rem; width: 1.3rem; text-align: center; }
+
+    /* Content area */
+    #content {
+      padding: 2.5rem;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+    }
+
+    /* Panel */
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      position: relative;
+      animation: panel-in 0.3s ease;
+    }
+    @keyframes panel-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .panel::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+    }
+    .panel-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.85rem; letter-spacing: 0.3em;
+      color: var(--green);
+      text-shadow: 0 0 10px var(--green);
+      margin-bottom: 1.5rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .panel-title::after {
+      content: '';
+      flex: 1; height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+
+    /* HERO */
+    #section-home .hero-name {
+      font-family: 'VT323', monospace;
+      font-size: clamp(3.5rem, 7vw, 5.5rem);
+      color: var(--green);
+      text-shadow: var(--green-glow);
+      line-height: 1;
+      animation: flicker 4s infinite;
+    }
+    #section-home .hero-role {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1rem;
+      color: var(--cyan);
+      letter-spacing: 0.25em;
+      margin-top: 0.5rem;
+    }
+    .typed-line { color: var(--text); font-size: 1.05rem; margin-top: 1.3rem; line-height: 1.9; }
+    .typed-line .cursor-blink { display: inline-block; animation: blink 1s infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    .stat-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1.2rem; margin-top: 1.5rem;
+    }
+    .stat-card {
+      border: 1px solid var(--border);
+      padding: 1.25rem;
+      border-radius: 3px;
+      text-align: center;
+      background: rgba(0,255,136,0.02);
+      transition: all 0.2s;
+      cursor: default;
+    }
+    .stat-card:hover {
+      border-color: var(--green);
+      background: rgba(0,255,136,0.06);
+      box-shadow: 0 0 20px rgba(0,255,136,0.1);
+    }
+    .stat-val {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2.2rem; font-weight: 900;
+      color: var(--green);
+      text-shadow: var(--green-glow);
+    }
+    .stat-label { font-size: 0.8rem; color: var(--text-dim); letter-spacing: 0.15em; margin-top: 0.4rem; }
+
+    /* Skills */
+    .skill-row { margin-bottom: 1.4rem; }
+    .skill-header { display: flex; justify-content: space-between; font-size: 0.95rem; margin-bottom: 0.5rem; }
+    .skill-name { color: var(--text); }
+    .skill-lvl { color: var(--green); font-family: 'Orbitron', sans-serif; font-size: 0.78rem; }
+    .xp-track {
+      height: 10px; background: var(--border);
+      border-radius: 3px; overflow: hidden;
+    }
+    .xp-fill {
+      height: 100%; background: linear-gradient(90deg, var(--green), var(--cyan));
+      box-shadow: 0 0 8px var(--green);
+      border-radius: 3px;
+      width: 0%;
+      transition: width 1s cubic-bezier(0.4,0,0.2,1);
+    }
+    .skill-category { color: var(--yellow); font-size: 0.82rem; letter-spacing: 0.2em; margin: 1.6rem 0 0.9rem; }
+
+    /* Experience timeline */
+    .timeline-item {
+      border-left: 2px solid var(--border);
+      padding: 0 0 2rem 2rem;
+      position: relative;
+    }
+    .timeline-item:last-child { padding-bottom: 0; }
+    .timeline-dot {
+      position: absolute; left: -6px; top: 4px;
+      width: 10px; height: 10px;
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--green);
+    }
+    .tl-date { font-size: 0.88rem; color: var(--text-dim); letter-spacing: 0.1em; margin-bottom: 0.4rem; }
+    .tl-title { font-family: 'Orbitron', sans-serif; font-size: 1rem; color: var(--green); font-weight: 700; }
+    .tl-company { font-size: 0.95rem; color: var(--cyan); margin-bottom: 0.8rem; }
+    .tl-bullet {
+      font-size: 0.93rem; color: var(--text); line-height: 1.8;
+      padding-left: 1.2rem; position: relative;
+      margin-top: 0.5rem;
+    }
+    .tl-bullet::before { content: '▸'; position: absolute; left: 0; color: var(--green); }
+
+    /* Project cards — vertical single column */
+    .projects-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .proj-card {
+      border: 1px solid var(--border);
+      padding: 1.8rem;
+      border-radius: 4px;
+      background: rgba(0,255,136,0.02);
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .proj-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(0,255,136,0.05), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+    .proj-card:hover { border-color: var(--green); box-shadow: 0 0 24px rgba(0,255,136,0.1); }
+    .proj-card:hover::before { opacity: 1; }
+    .proj-name { font-family: 'Orbitron', sans-serif; font-size: 1rem; color: var(--green); font-weight: 700; margin-bottom: 0.6rem; }
+    .proj-tag { display: inline-block; font-size: 0.78rem; color: var(--purple); border: 1px solid var(--purple); padding: 0.2rem 0.6rem; border-radius: 2px; margin-bottom: 0.9rem; }
+    .proj-desc { font-size: 0.95rem; color: var(--text); line-height: 1.8; }
+    .proj-status { font-size: 0.82rem; color: var(--yellow); margin-top: 0.9rem; }
+
+    /* Terminal */
+    #terminal-window {
+      background: #010a05;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .term-titlebar {
+      background: var(--bg2);
+      padding: 0.6rem 1rem;
+      display: flex; align-items: center; gap: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .term-dot { width: 11px; height: 11px; border-radius: 50%; }
+    .td-r { background: #ff5f57; }
+    .td-y { background: #ffbd2e; }
+    .td-g { background: #28ca41; }
+    .term-title { font-size: 0.85rem; color: var(--text-dim); margin-left: 0.5rem; letter-spacing: 0.1em; }
+    #term-output {
+      padding: 1.2rem;
+      font-size: 0.95rem;
+      min-height: 300px;
+      max-height: 440px;
+      overflow-y: auto;
+      line-height: 1.8;
+    }
+    .term-line { margin-bottom: 0.2rem; }
+    .term-prompt { color: var(--green); }
+    .term-cmd { color: var(--cyan); }
+    .term-out { color: var(--text); }
+    .term-err { color: var(--red); }
+    .term-success { color: var(--green); }
+    #term-input-row {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.65rem 1.2rem;
+      border-top: 1px solid var(--border);
+    }
+    #term-input {
+      flex: 1; background: transparent; border: none;
+      color: var(--cyan); font-family: 'Share Tech Mono', monospace;
+      font-size: 0.95rem; outline: none; caret-color: var(--green);
+    }
+    .term-help-chips {
+      display: flex; flex-wrap: wrap; gap: 0.6rem;
+      padding: 0.85rem 1.2rem;
+      border-top: 1px solid rgba(10,51,32,0.5);
+    }
+    .chip {
+      font-size: 0.82rem; color: var(--text-dim);
+      border: 1px solid var(--border); padding: 0.3rem 0.75rem;
+      border-radius: 2px; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .chip:hover { color: var(--green); border-color: var(--green); }
+
+    /* Education */
+    .edu-card {
+      border: 1px solid var(--border);
+      padding: 1.6rem; border-radius: 3px;
+      margin-bottom: 1.1rem;
+      transition: all 0.2s;
+    }
+    .edu-card:hover { border-color: var(--green); }
+    .edu-deg { font-family: 'Orbitron', sans-serif; font-size: 0.95rem; color: var(--green); font-weight: 700; }
+    .edu-uni { color: var(--cyan); font-size: 0.95rem; margin: 0.35rem 0; }
+    .edu-year { color: var(--text-dim); font-size: 0.85rem; }
+    .edu-courses { margin-top: 0.75rem; font-size: 0.9rem; color: var(--text); line-height: 1.8; }
+
+    /* Achievements */
+    .ach-item {
+      display: flex; gap: 1.2rem; align-items: flex-start;
+      padding: 1rem 0;
+      border-bottom: 1px solid rgba(10,51,32,0.6);
+    }
+    .ach-item:last-child { border-bottom: none; }
+    .ach-icon { font-size: 1.8rem; flex-shrink: 0; }
+    .ach-text { font-size: 0.95rem; color: var(--text); line-height: 1.7; }
+    .ach-year { color: var(--text-dim); font-size: 0.82rem; }
+
+    /* Contact */
+    .contact-links { display: flex; flex-direction: column; gap: 1rem; }
+    .contact-item {
+      display: flex; align-items: center; gap: 1.2rem;
+      padding: 1rem 1.2rem;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      color: inherit;
+    }
+    .contact-item:hover { border-color: var(--green); background: rgba(0,255,136,0.04); }
+    .contact-key { color: var(--text-dim); font-size: 0.88rem; width: 90px; flex-shrink: 0; }
+    .contact-val { color: var(--green); font-size: 1rem; }
+
+    /* Animations */
+    @keyframes flicker {
+      0%, 93%, 95%, 97%, 100% { opacity: 1; }
+      94%, 96% { opacity: 0.7; }
+    }
+    @keyframes appear { to { opacity: 1; } }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--green-dim); }
+
+    /* Links */
+    .cert-link {
+      display: inline-block; margin-top: 0.5rem;
+      font-size: 0.85rem; color: var(--cyan);
+      text-decoration: none; letter-spacing: 0.05em;
+      border-bottom: 1px solid transparent;
+      transition: all 0.15s;
+    }
+    .cert-link:hover { color: var(--green); border-bottom-color: var(--green); }
+    .proj-link {
+      font-size: 0.85rem; color: var(--cyan);
+      text-decoration: none; letter-spacing: 0.05em;
+      border-bottom: 1px solid transparent;
+      transition: all 0.15s; white-space: nowrap;
+    }
+    .proj-link:hover { color: var(--green); border-bottom-color: var(--green); }
+
+    /* Responsive */
+    @media (max-width: 700px) {
+      #main-layout { grid-template-columns: 1fr; }
+      #sidebar {
+        flex-direction: row; flex-wrap: wrap;
+        border-right: none; border-bottom: 1px solid var(--border);
+        padding: 0.5rem;
+      }
+      .sidebar-label { display: none; }
+      .nav-item { padding: 0.5rem 0.7rem; font-size: 0.85rem; border-left: none; border-bottom: 2px solid transparent; }
+      .nav-item.active { border-left-color: transparent; border-bottom-color: var(--green); }
+      #content { padding: 1.2rem; }
+    }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    #progress-bar {
+      position: fixed; top: 0; left: 0; height: 2px;
+      background: var(--green);
+      box-shadow: var(--green-glow);
+      z-index: 999;
+      width: 0%;
+      transition: width 0.3s;
+    }
+  </style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-dot"></div>
+<div id="progress-bar"></div>
+
+<!-- BOOT SCREEN -->
+<div id="boot-screen">
+  <div class="boot-logo">CHETAN.EXE</div>
+  <div class="boot-sub">PORTFOLIO OS v2.6 — INITIALIZING</div>
+  <div class="boot-log" id="boot-log"></div>
+  <div class="boot-bar"><div class="boot-fill" id="boot-fill"></div></div>
+  <button id="enter-btn" onclick="launchOS()">[ ENTER SYSTEM ]</button>
+</div>
+
+<!-- MAIN OS -->
+<div id="os">
+  <div id="topbar">
+    <div class="topbar-logo">⬡ CHETAN::OS</div>
+    <div class="status-pills">
+      <span class="pill">● ONLINE</span>
+      <span class="pill">SWE/IND</span>
+      <span class="pill">OPEN TO WORK</span>
+    </div>
+    <div id="clock"></div>
+  </div>
+
+  <div id="main-layout">
+    <div id="sidebar">
+      <div class="sidebar-label">// NAVIGATION</div>
+      <div class="nav-item active" onclick="showSection('home')">
+        <span class="nav-icon">⌂</span> HOME
+      </div>
+      <div class="nav-item" onclick="showSection('skills')">
+        <span class="nav-icon">⚡</span> SKILLS
+      </div>
+      <div class="nav-item" onclick="showSection('experience')">
+        <span class="nav-icon">◈</span> EXPERIENCE
+      </div>
+      <div class="nav-item" onclick="showSection('projects')">
+        <span class="nav-icon">⬡</span> PROJECTS
+      </div>
+      <div class="nav-item" onclick="showSection('education')">
+        <span class="nav-icon">◉</span> EDUCATION
+      </div>
+      <div class="nav-item" onclick="showSection('terminal')">
+        <span class="nav-icon">❯</span> TERMINAL
+      </div>
+      <div class="nav-item" onclick="showSection('contact')">
+        <span class="nav-icon">◌</span> CONTACT
+      </div>
+    </div>
+
+    <div id="content">
+
+      <!-- HOME -->
+      <div id="section-home" class="section active">
+        <div class="panel">
+          <div class="hero-name">CHETAN<br>ACHARYA</div>
+          <div class="hero-role">DATA SCIENTIST & AI ENGINEER</div>
+          <div class="typed-line" id="typed-text"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">▸ SYSTEM STATS</div>
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-val" data-count="2">0</div>
+              <div class="stat-label">YEARS EXP</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val" data-count="6">0</div>
+              <div class="stat-label">PROJECTS</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val" data-count="1">0</div>
+              <div class="stat-label">PUBLICATIONS</div>
+            </div>
+            <!--<div class="stat-card">
+              <div class="stat-val" data-count="100">0</div>
+              <div class="stat-label">RUNTIME SAVED %</div>
+            </div> -->
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">▸ CURRENT STATUS</div>
+          <div style="font-size:1rem; color:var(--text); line-height:2.1;">
+            <div>📍 <span style="color:var(--cyan)">Location:</span> Gothenburg, Sweden</div>
+            <div>🎓 <span style="color:var(--cyan)">Degree:</span> M.Sc. Data Science & AI — Chalmers University (2025)</div>
+            <div>🏢 <span style="color:var(--cyan)">Last Role:</span> Master Thesis Student @ Zeekr Technology Europe</div>
+            <div>🔍 <span style="color:var(--cyan)">Seeking:</span> Data Science / ML Engineering roles</div>
+            <div>⚙️ <span style="color:var(--cyan)">Specialty:</span> Machine Learning · NLP · Data · Optimization </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SKILLS -->
+      <div id="section-skills" class="section">
+        <div class="panel">
+          <div class="panel-title">▸ SKILL TREE</div>
+          <div class="skill-category">// LANGUAGES</div>
+          <div id="skills-container"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">▸ TECH STACK TAGS</div>
+          <div id="tag-cloud" style="display:flex;flex-wrap:wrap;gap:0.7rem;"></div>
+        </div>
+      </div>
+
+      <!-- EXPERIENCE -->
+      <div id="section-experience" class="section">
+        <div class="panel">
+          <div class="panel-title">▸ MISSION LOG</div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="tl-date">JAN 2025 — SEPT 2025</div>
+            <div class="tl-title">MASTER THESIS STUDENT</div>
+            <div class="tl-company">Zeekr Technology Europe AB · Gothenburg, Sweden</div>
+            <div class="tl-bullet">Developed surrogate models to replace costly FMU-based simulations in the powertrain system, reducing simulation runtime by 100%</div>
+            <div class="tl-bullet">Built reusable data pipelines using Python and PyTorch for model training, evaluation, and integration</div>
+            <div class="tl-bullet">Built a multi-objective optimization tool (NSGA-II) which suggests optimal values for powertrain parameters using the surrogate model</div>
+            <div class="tl-bullet">Collaborated with cross-functional teams to integrate surrogate models into larger systems</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">▸ CERTIFICATIONS</div>
+          <div class="ach-item">
+            <div class="ach-icon">🏅</div>
+            <div class="ach-text" style="flex:1;">
+              <div style="color:var(--green);font-size:0.95rem;font-family:'Orbitron',sans-serif;">Supervised Machine Learning</div>
+              <div>Regression and Classification — DeepLearning.AI & Stanford University</div>
+              <a href="https://coursera.org/share/acf40245d573f9a9f3c2e27f391a061d" target="_blank" class="cert-link">[ VIEW CERTIFICATE ↗ ]</a>
+            </div>
+          </div>
+          <div class="ach-item">
+            <div class="ach-icon">🏅</div>
+            <div class="ach-text" style="flex:1;">
+              <div style="color:var(--green);font-size:0.95rem;font-family:'Orbitron',sans-serif;">Natural Language Processing</div>
+              <div>HES University</div>
+              <a href="https://coursera.org/share/0ae63775e70e52dfa1cb48dffc141366" target="_blank" class="cert-link">[ VIEW CERTIFICATE ↗ ]</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROJECTS -->
+      <div id="section-projects" class="section">
+        <div class="panel">
+          <div class="panel-title">▸ DEPLOYED PROJECTS</div>
+          <div class="projects-grid" id="projects-grid"></div>
+        </div>
+      </div>
+
+      <!-- EDUCATION -->
+      <div id="section-education" class="section">
+        <div class="panel">
+          <div class="panel-title">▸ KNOWLEDGE BASE</div>
+          <div class="edu-card">
+            <div class="edu-deg">M.Sc. DATA SCIENCE & ARTIFICIAL INTELLIGENCE</div>
+            <div class="edu-uni">Chalmers University of Technology · Gothenburg, Sweden</div>
+            <div class="edu-year">2023 — 2025</div>
+            <div class="edu-courses">
+              <span style="color:var(--text-dim);">Coursework:</span> Applied Machine Learning · Natural Language Processing · Deep Machine Learning · Statistical Learning of Big Data
+            </div>
+          </div>
+          <div class="edu-card">
+            <div class="edu-deg">B.Sc. COMPUTER SCIENCE</div>
+            <div class="edu-uni">NMAM Institute of Technology · Nitte, India</div>
+            <div class="edu-year">2018 — 2022 &nbsp;|&nbsp; <span style="color:var(--green);">CGPA: 8.35</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">▸ ACHIEVEMENTS UNLOCKED</div>
+          <div class="ach-item">
+            <div class="ach-icon">🏆</div>
+            <div>
+              <div class="ach-text"><strong style="color:var(--yellow)">State-Level IT Quiz Winner</strong> — Sahyadri College of Engineering & Management</div>
+              <div class="ach-year">2019 · Demonstrated expertise in IT and problem-solving</div>
+            </div>
+          </div>
+          <div class="ach-item">
+            <div class="ach-icon">🎙️</div>
+            <div>
+              <div class="ach-text"><strong style="color:var(--yellow)">CharmHost</strong> — Annual Charm Career Fair, Chalmers University</div>
+              <div class="ach-year">2024 · Facilitated interactions between students and industry professionals</div>
+            </div>
+          </div>
+          <div class="ach-item">
+            <div class="ach-icon">🌐</div>
+            <div>
+              <div class="ach-text"><strong style="color:var(--yellow)">Secretary</strong> — Rotaract Club of Moodbidri</div>
+              <div class="ach-year">2022 · Led community service initiatives, fostering teamwork and leadership</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TERMINAL -->
+      <div id="section-terminal" class="section">
+        <div class="panel">
+          <div class="panel-title">▸ INTERACTIVE TERMINAL</div>
+          <p style="font-size:0.9rem;color:var(--text-dim);margin-bottom:1rem;">Type commands below or click a suggestion. Try <span style="color:var(--green)">help</span> to get started.</p>
+          <div id="terminal-window">
+            <div class="term-titlebar">
+              <div class="term-dot td-r"></div>
+              <div class="term-dot td-y"></div>
+              <div class="term-dot td-g"></div>
+              <span class="term-title">chetan@portfolio:~$</span>
+            </div>
+            <div id="term-output">
+              <div class="term-line term-success">Welcome to CHETAN::OS Terminal v2.6</div>
+              <div class="term-line term-out">Type 'help' to see available commands.</div>
+              <div class="term-line"> </div>
+            </div>
+            <div class="term-help-chips" id="term-chips"></div>
+            <div id="term-input-row">
+              <span class="term-prompt">chetan@portfolio:~$&nbsp;</span>
+              <input id="term-input" type="text" autocomplete="off" spellcheck="false" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTACT -->
+      <div id="section-contact" class="section">
+        <div class="panel">
+          <div class="panel-title">▸ ESTABLISH CONNECTION</div>
+          <div class="contact-links">
+            <a class="contact-item" href="mailto:chetanpv7@gmail.com">
+              <span class="contact-key">EMAIL</span>
+              <span class="contact-val">chetanpv7@gmail.com</span>
+            </a>
+            <a class="contact-item" href="https://linkedin.com/in/chetan-acharya" target="_blank" rel="noopener">
+              <span class="contact-key">LINKEDIN</span>
+              <span class="contact-val">linkedin.com/in/chetan-acharya ↗</span>
+            </a>
+            <a class="contact-item" href="https://github.com/chetan-arch" target="_blank" rel="noopener">
+              <span class="contact-key">GITHUB</span>
+              <span class="contact-val">github.com/chetan-arch ↗</span>
+            </a>
+            <a class="contact-item" href="tel:+46764502637">
+              <span class="contact-key">PHONE</span>
+              <span class="contact-val">+46 764 502 637</span>
+            </a>
+            <div class="contact-item" style="cursor:default;">
+              <span class="contact-key">LOCATION</span>
+              <span class="contact-val">Gothenburg, Sweden 🇸🇪</span>
+            </div>
+          </div>
+        </div>
+        <!--<div class="panel">
+          <div class="panel-title">▸ SEND A MESSAGE</div>
+          <div style="display:flex;flex-direction:column;gap:1rem;">
+            <div>
+              <div style="font-size:0.88rem;color:var(--text-dim);margin-bottom:0.4rem;">YOUR NAME</div>
+              <input id="msg-name" type="text" placeholder="John Doe" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:0.95rem;padding:0.7rem 1rem;outline:none;border-radius:2px;" onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+            <div>
+              <div style="font-size:0.88rem;color:var(--text-dim);margin-bottom:0.4rem;">MESSAGE</div>
+              <textarea id="msg-body" placeholder="Hello Chetan..." rows="5" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:0.95rem;padding:0.7rem 1rem;outline:none;border-radius:2px;resize:vertical;" onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+            </div>
+            <a id="send-mailto-btn" href="#" onclick="return buildMailtoLink()" style="align-self:flex-start;font-family:'Orbitron',sans-serif;font-size:0.82rem;color:var(--bg);background:var(--green);padding:0.75rem 2rem;letter-spacing:0.15em;cursor:pointer;box-shadow:var(--green-glow);text-decoration:none;display:inline-block;">TRANSMIT ▸</a>
+            <div id="msg-status" style="font-size:0.88rem;color:var(--yellow);display:none;">✓ Mail client opened with your message!</div>
+            <div style="font-size:0.88rem;color:var(--text-dim);">↳ Or email directly: <a href="mailto:chetanpv7@gmail.com" style="color:var(--green);">chetanpv7@gmail.com</a></div>
+          </div>
+        </div> -->
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== DATA =====================
+const skills = [
+  { name: 'Python', level: 95, cat: '// LANGUAGES' },
+  { name: 'SQL', level: 80, cat: null },
+  { name: 'C++', level: 75, cat: null },
+  { name: 'Java', level: 60, cat: null },
+  { name: 'MATLAB', level: 55, cat: null },
+  { name: 'PyTorch', level: 90, cat: '// FRAMEWORKS' },
+  { name: 'Scikit-Learn', level: 92, cat: null },
+  { name: 'Hugging Face', level: 85, cat: null },
+  { name: 'NumPy / Pandas', level: 93, cat: null },
+  { name: 'PostgreSQL', level: 75, cat: null },
+  { name: 'Machine Learning', level: 95, cat: '// COMPETENCIES' },
+  { name: 'NLP', level: 88, cat: null },
+  { name: 'Optimization (NSGA-II)', level: 82, cat: null },
+  { name: 'Data Pipelines', level: 87, cat: null },
+];
+
+const tags = [
+  'Python','PyTorch','SciKit-Learn','Pandas','NumPy','Hugging Face',
+  'PostgreSQL','Git','NSGA-II','ResNet','TensorFlow','Keras',
+  'NLP','Deep Learning','Surrogate Modelling','Data Science',
+  'SQL','MATLAB','C++','Java','MySQL','HTML/CSS'
+];
+
+const projects = [
+  {
+    name: 'SPOTIFY → YOUTUBE EXPORTER',
+    tag: 'PYTHON · ML',
+    desc: 'Exports all liked Spotify songs to YouTube Music, with an ML recommendation system suggesting new tracks.',
+    status: '● ACTIVE',
+    url: 'https://github.com/chetan-arch/Spotify-YTM-Exporter'
+  },
+  {
+    name: 'COVID-19 CT SCAN DETECTOR',
+    tag: 'DEEP LEARNING',
+    desc: 'Leverages Keras, TensorFlow, and ResNet V2 Model to detect COVID-19 from chest CT scan images.',
+    status: '● COMPLETED',
+    url: ''
+  },
+  {
+    name: 'STANCE CLASSIFIER',
+    tag: 'NLP · ML',
+    desc: 'Text classifier to determine sentiment on COVID-19 vaccination, using NLP tools and Scikit-Learn.',
+    status: '● COMPLETED',
+    url: 'https://github.com/chetan-arch/CovidCommentsAnalysis'
+  },
+  {
+    name: 'SMART FINANCE MGMT SYSTEM',
+    tag: 'DBMS · WEB',
+    desc: 'Robust database management system for a local finance company, built with MySQL, HTML, and CSS.',
+    status: '● DEPLOYED',
+    url: 'https://github.com/chetan-arch/SFMS-Finance-Management-System'
+  },
+  {
+    name: 'E-COMMERCE CLASSIFIER',
+    tag: 'RESEARCH · NLP + CNN',
+    desc: 'Published research analyzing ML and DL models for product description classification, combining NLP and CNN.',
+    status: '★ PUBLISHED',
+    url: 'https://www.neuroquantology.com/open-access/Product+Description+Classification+for++E-Commerce+Websites_9614/'
+  },
+  {
+    name: 'POWERTRAIN SURROGATE MODEL',
+    tag: 'ML · OPTIMIZATION',
+    desc: 'Surrogate models replacing FMU-based simulations at Zeekr. 100% runtime reduction with NSGA-II optimization.',
+    status: '◈ THESIS',
+    url: 'https://white-sound-61.linkyhost.com'
+  },
+];
+
+const terminalCommands = {
+  help: () => [
+    { t: 'success', m: '═══ AVAILABLE COMMANDS ═══' },
+    { t: 'out', m: '  whoami       — display identity' },
+    { t: 'out', m: '  skills       — list all skills' },
+    { t: 'out', m: '  experience   — show work history' },
+    { t: 'out', m: '  projects     — list projects' },
+    { t: 'out', m: '  education    — academic background' },
+    { t: 'out', m: '  contact      — connection info' },
+    { t: 'out', m: '  clear        — clear terminal' },
+    { t: 'out', m: '  hire         — why hire Chetan?' },
+    { t: 'out', m: '  cat resume   — print resume summary' },
+    { t: 'out', m: '' },
+  ],
+  whoami: () => [
+    { t: 'success', m: '> PUTHIGE VENUGOPAL CHETAN ACHARYA' },
+    { t: 'out', m: '  Role   : Data Scientist & AI Engineer' },
+    { t: 'out', m: '  Base   : Gothenburg, Sweden' },
+    { t: 'out', m: '  Degree : M.Sc. Data Science & AI, Chalmers' },
+    { t: 'out', m: '  Status : Open to opportunities' },
+    { t: 'out', m: '' },
+  ],
+  skills: () => [
+    { t: 'success', m: '> SKILL MANIFEST:' },
+    ...skills.map(s => ({ t: 'out', m: `  ${s.name.padEnd(25)} [${'█'.repeat(Math.floor(s.level/10))}${'░'.repeat(10-Math.floor(s.level/10))}] ${s.level}%` })),
+    { t: 'out', m: '' },
+  ],
+  experience: () => [
+    { t: 'success', m: '> MISSION LOG:' },
+    { t: 'out', m: '  JAN 2025 – SEPT 2025' },
+    { t: 'out', m: '  Master Thesis Student @ Zeekr Technology Europe' },
+    { t: 'out', m: '  ▸ 100% simulation runtime reduction via surrogate models' },
+    { t: 'out', m: '  ▸ PyTorch data pipelines for training & evaluation' },
+    { t: 'out', m: '  ▸ Multi-objective optimization with NSGA-II' },
+    { t: 'out', m: '' },
+  ],
+  projects: () => [
+    { t: 'success', m: '> PROJECT INDEX:' },
+    ...projects.map((p,i) => ({ t: 'out', m: `  [${i+1}] ${p.name} (${p.tag})` })),
+    { t: 'out', m: '' },
+  ],
+  education: () => [
+    { t: 'success', m: '> KNOWLEDGE BASE:' },
+    { t: 'out', m: '  M.Sc. Data Science & AI' },
+    { t: 'out', m: '  Chalmers University of Technology, 2023-2025' },
+    { t: 'out', m: '' },
+    { t: 'out', m: '  B.Sc. Computer Science (CGPA: 8.35)' },
+    { t: 'out', m: '  NMAM Institute of Technology, 2018-2022' },
+    { t: 'out', m: '' },
+  ],
+  contact: () => [
+    { t: 'success', m: '> CONNECTION DETAILS:' },
+    { t: 'out', m: '  Email    : chetanpv7@gmail.com' },
+    { t: 'out', m: '  LinkedIn : linkedin.com/in/chetan-acharya' },
+    { t: 'out', m: '  GitHub   : github.com/chetan-arch' },
+    { t: 'out', m: '  Phone    : +46 764 502 637' },
+    { t: 'out', m: '' },
+  ],
+  hire: () => [
+    { t: 'success', m: '> CASE FOR HIRE:' },
+    { t: 'out', m: '  ▸ Reduced powertrain simulation time by 100%' },
+    { t: 'out', m: '  ▸ Published ML research; strong theoretical + practical mix' },
+    { t: 'out', m: '  ▸ Full-stack ML: from data pipelines to deployment' },
+    { t: 'out', m: '  ▸ Cross-functional collaborator (industry experience)' },
+    { t: 'out', m: '  ▸ Bilingual; global perspective (India → Sweden)' },
+    { t: 'out', m: '  ▸ Fast learner with state-of-the-art tooling' },
+    { t: 'out', m: '' },
+    { t: 'success', m: '  >> VERDICT: STRONG HIRE ✓' },
+    { t: 'out', m: '' },
+  ],
+  'cat resume': () => [
+    { t: 'success', m: '> chetan_resume_2026.pdf' },
+    { t: 'out', m: '  Name    : Puthige Venugopal Chetan Acharya' },
+    { t: 'out', m: '  Email   : chetanpv7@gmail.com' },
+    { t: 'out', m: '  Phone   : +46 764 502 637' },
+    { t: 'out', m: '  MS GPA  : Chalmers 2023-2025' },
+    { t: 'out', m: '  BS CGPA : 8.35 / 10 (NMAM, 2022)' },
+    { t: 'out', m: '  Top     : PyTorch, Scikit-Learn, NLP, Surrogate Modelling' },
+    { t: 'out', m: '' },
+  ],
+};
+
+const chipCommands = ['help','whoami','skills','experience','projects','hire'];
+
+// ===================== BOOT SEQUENCE =====================
+const bootLines = [
+  { delay: 200,  text: '[OK] Loading kernel modules... DONE',               cls: 'term-success' },
+  { delay: 400,  text: '[OK] Mounting /portfolio filesystem...',             cls: 'term-out' },
+  { delay: 700,  text: '[OK] Initializing skill matrix...',                  cls: 'term-success' },
+  { delay: 1000, text: '[OK] Compiling project registry...',                 cls: 'term-success' },
+  { delay: 1300, text: '[OK] Establishing neural connections...',            cls: 'term-out' },
+  { delay: 1600, text: '[OK] Loading personality module: CHETAN.personality',cls: 'term-out' },
+  { delay: 2000, text: '[OK] All systems nominal.',                          cls: 'term-success' },
+  { delay: 2200, text: '> Boot complete. Portfolio OS v2.6 ready.',         cls: 'term-success' },
+];
+
+// Script is at end of body — DOM is already ready, run immediately
+(function() {
+  const log  = document.getElementById('boot-log');
+  const fill = document.getElementById('boot-fill');
+  const btn  = document.getElementById('enter-btn');
+
+  bootLines.forEach((line, i) => {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'line ' + line.cls;
+      el.textContent = line.text;
+      log.appendChild(el);
+      fill.style.width = ((i + 1) / bootLines.length * 100) + '%';
+      if (i === bootLines.length - 1) {
+        setTimeout(() => { btn.style.display = 'block'; }, 300);
+      }
+    }, line.delay);
+  });
+
+  document.addEventListener('mousemove', e => {
+    document.getElementById('cursor').style.left  = (e.clientX - 8) + 'px';
+    document.getElementById('cursor').style.top   = (e.clientY - 8) + 'px';
+    document.getElementById('cursor-dot').style.left = e.clientX + 'px';
+    document.getElementById('cursor-dot').style.top  = e.clientY + 'px';
+  });
+})();
+
+function launchOS() {
+  document.getElementById('boot-screen').classList.add('hidden');
+  document.getElementById('os').classList.add('active');
+  initOS();
+}
+
+function initOS() {
+  updateClock();
+  setInterval(updateClock, 1000);
+  typeHero();
+  animateCounters();
+  buildSkills();
+  buildTags();
+  buildProjects();
+  buildTermChips();
+  setupTerminal();
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('en-SE', { hour12: false }) + ' UTC+1';
+}
+
+const heroLines = [
+  ">> M.Sc. Data Science & AI @ Chalmers University",
+  ">> Passionate about ML, NLP & Optimization",
+  ">> Built surrogate models cutting simulation time by a significant amount",
+  ">> Let's build something intelligent together.",
+];
+let lineIdx = 0, charIdx = 0, isDeleting = false;
+function typeHero() {
+  const el = document.getElementById('typed-text');
+  const current = heroLines[lineIdx];
+  if (!isDeleting) {
+    charIdx++;
+    el.innerHTML = current.slice(0, charIdx) + '<span class="cursor-blink">█</span>';
+    if (charIdx === current.length) { isDeleting = true; setTimeout(typeHero, 2200); return; }
+  } else {
+    charIdx--;
+    el.innerHTML = current.slice(0, charIdx) + '<span class="cursor-blink">█</span>';
+    if (charIdx === 0) { isDeleting = false; lineIdx = (lineIdx + 1) % heroLines.length; }
+  }
+  setTimeout(typeHero, isDeleting ? 30 : 55);
+}
+
+function animateCounters() {
+  document.querySelectorAll('[data-count]').forEach(el => {
+    const target = parseInt(el.dataset.count);
+    let cur = 0;
+    const step = Math.max(1, Math.floor(target / 40));
+    const iv = setInterval(() => {
+      cur = Math.min(cur + step, target);
+      el.textContent = cur + (target === 100 ? '%' : '+');
+      if (cur >= target) clearInterval(iv);
+    }, 30);
+  });
+}
+
+function buildSkills() {
+  const container = document.getElementById('skills-container');
+  skills.forEach(s => {
+    if (s.cat) {
+      const cat = document.createElement('div');
+      cat.className = 'skill-category';
+      cat.textContent = s.cat;
+      container.appendChild(cat);
+    }
+    container.insertAdjacentHTML('beforeend', `
+      <div class="skill-row">
+        <div class="skill-header">
+          <span class="skill-name">${s.name}</span>
+          <span class="skill-lvl">LVL ${Math.round(s.level/10)}/10</span>
+        </div>
+        <div class="xp-track"><div class="xp-fill" data-width="${s.level}"></div></div>
+      </div>
+    `);
+  });
+}
+
+function animateSkills() {
+  document.querySelectorAll('.xp-fill').forEach(el => {
+    setTimeout(() => { el.style.width = el.dataset.width + '%'; }, 100);
+  });
+}
+
+function buildTags() {
+  const tc = document.getElementById('tag-cloud');
+  const colors = ['var(--green)','var(--cyan)','var(--yellow)','var(--purple)'];
+  tags.forEach((tag, i) => {
+    const span = document.createElement('span');
+    const c = colors[i % colors.length];
+    span.style.cssText = `font-size:0.9rem;padding:0.3rem 0.85rem;border:1px solid ${c};color:${c};border-radius:2px;cursor:default;transition:all 0.2s;`;
+    span.textContent = tag;
+    span.addEventListener('mouseover', () => span.style.background = c + '22');
+    span.addEventListener('mouseout',  () => span.style.background = 'transparent');
+    tc.appendChild(span);
+  });
+}
+
+function buildProjects() {
+  const grid = document.getElementById('projects-grid');
+  const statusColors = { '● ACTIVE':'var(--green)', '● COMPLETED':'var(--cyan)', '● DEPLOYED':'var(--yellow)', '★ PUBLISHED':'var(--purple)', '◈ THESIS':'var(--cyan)' };
+  projects.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'proj-card';
+    const linkBtn = p.url ? `<a href="${p.url}" target="_blank" class="proj-link">[ VIEW PROJECT ↗ ]</a>` : '';
+    card.innerHTML = `
+      <div class="proj-name">${p.name}</div>
+      <div class="proj-tag">${p.tag}</div>
+      <div class="proj-desc">${p.desc}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:1rem;flex-wrap:wrap;gap:0.5rem;">
+        <div class="proj-status" style="color:${statusColors[p.status]||'var(--green)'};">${p.status}</div>
+        ${linkBtn}
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('section-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+  const bar = document.getElementById('progress-bar');
+  bar.style.width = '60%';
+  setTimeout(() => { bar.style.width = '100%'; }, 200);
+  setTimeout(() => { bar.style.width = '0%'; bar.style.transition = 'none'; }, 600);
+  setTimeout(() => { bar.style.transition = 'width 0.3s'; }, 650);
+  if (id === 'skills') setTimeout(animateSkills, 100);
+}
+
+// ===================== TERMINAL =====================
+function termPrint(lines) {
+  const out = document.getElementById('term-output');
+  lines.forEach(line => {
+    const div = document.createElement('div');
+    div.className = 'term-line term-' + line.t;
+    div.textContent = line.m;
+    out.appendChild(div);
+  });
+  out.scrollTop = out.scrollHeight;
+}
+
+function runTermCmd(cmd) {
+  const out = document.getElementById('term-output');
+  const echo = document.createElement('div');
+  echo.className = 'term-line';
+  echo.innerHTML = '<span class="term-prompt">chetan@portfolio:~$ </span><span class="term-cmd">' + cmd + '</span>';
+  out.appendChild(echo);
+  if (cmd === 'clear') { out.innerHTML = ''; return; }
+  const fn = terminalCommands[cmd];
+  if (fn) {
+    termPrint(fn());
+  } else {
+    termPrint([
+      { t: 'err', m: 'bash: ' + cmd + ': command not found' },
+      { t: 'out', m: "Type 'help' to see available commands." },
+      { t: 'out', m: '' },
+    ]);
+  }
+  out.scrollTop = out.scrollHeight;
+}
+
+function buildTermChips() {
+  const chips = document.getElementById('term-chips');
+  chipCommands.forEach(cmd => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = cmd;
+    chip.addEventListener('click', () => {
+      runTermCmd(cmd);
+      document.getElementById('term-input').focus();
+    });
+    chips.appendChild(chip);
+  });
+}
+
+function setupTerminal() {
+  const input = document.getElementById('term-input');
+  const termWin = document.getElementById('terminal-window');
+  termWin.addEventListener('click', () => input.focus());
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const cmd = input.value.trim().toLowerCase();
+      input.value = '';
+      if (cmd) runTermCmd(cmd);
+    }
+  });
+  const sec = document.getElementById('section-terminal');
+  if (sec) {
+    const obs = new MutationObserver(() => {
+      if (sec.classList.contains('active')) setTimeout(() => input.focus(), 80);
+    });
+    obs.observe(sec, { attributes: true, attributeFilter: ['class'] });
+  }
+}
+
+function buildMailtoLink() {
+  const name = document.getElementById('msg-name').value.trim();
+  const body = document.getElementById('msg-body').value.trim();
+  const status = document.getElementById('msg-status');
+  if (!name && !body) {
+    status.textContent = 'Please fill in your name and message first.';
+    status.style.color = 'var(--red)';
+    status.style.display = 'block';
+    return false;
+  }
+  const subject = encodeURIComponent('Portfolio Contact from ' + (name || 'Visitor'));
+  const bodyEncoded = encodeURIComponent(body || '(no message)');
+  document.getElementById('send-mailto-btn').href = 'mailto:chetanpv7@gmail.com?subject=' + subject + '&body=' + bodyEncoded;
+  status.textContent = 'Mail client opened! If nothing happened, use the direct email link below.';
+  status.style.color = 'var(--yellow)';
+  status.style.display = 'block';
+  return true;
+}
+</script>
+</body>
+</html>
